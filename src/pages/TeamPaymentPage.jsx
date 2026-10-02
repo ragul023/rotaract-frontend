@@ -300,7 +300,7 @@ export default function TeamPaymentPage() {
                 <img
                   className="registration-qr-image"
                   src="/upi-qr.png"
-                  alt="UPI QR code placeholder"
+                  alt="UPI payment QR code"
                 />
               </div>
             )}

@@ -361,17 +361,27 @@
   margin-top: 24px;
 }
 .registration-qr-placeholder {
-  min-height: 220px;
+  min-height: 196px;
   display: grid;
   align-content: center;
   justify-items: center;
   gap: 10px;
+  padding: 14px;
   border: 1px dashed rgba(240, 189, 87, 0.45);
   background: repeating-linear-gradient(
     45deg,
     rgba(240, 189, 87, 0.035) 0 8px,
     transparent 8px 16px
   );
+}
+.registration-qr-image {
+  width: min(100%, 180px);
+  aspect-ratio: 1;
+  display: block;
+  object-fit: contain;
+  padding: 8px;
+  border-radius: 4px;
+  background: #fff;
 }
 .registration-qr-placeholder > strong {
   font-size: 11px;
@@ -568,7 +578,10 @@
     grid-template-columns: 1fr;
   }
   .registration-qr-placeholder {
-    min-height: 185px;
+    min-height: 176px;
+  }
+  .registration-qr-image {
+    width: min(100%, 160px);
   }
 }
 @media (max-width: 480px) {
