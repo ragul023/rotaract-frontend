@@ -36,6 +36,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import PlayerImage from "../components/PlayerImage";
 import { AdminVoiceBroadcast } from "../components/AuctionAudio";
+import TeamCaptainChat from "../components/TeamCaptainChat";
 
 const StadiumScene = lazy(() => import("../components/StadiumScene"));
 
@@ -713,6 +714,9 @@ export default function AdminPage() {
         </aside>
 
         <main className="main-panel admin-main">
+          {user.role === "SUPER_ADMIN" && (
+            <TeamCaptainChat socket={socket} readOnly />
+          )}
           <section className="admin-masthead">
             <div className="masthead-copy">
               <div className="eyebrow">

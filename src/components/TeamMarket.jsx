@@ -33,6 +33,12 @@ export default function TeamMarket({
   const targetTeam = targetTeams.find((team) => team.team_id === targetTeamId);
 
   const refresh = async () => {
+    if (!isTeamApproved) {
+      setWindowOpen(false);
+      setOffers([]);
+      setMarket({ listings: [], requests: [] });
+      return;
+    }
     const [windowResponse, offerResponse, marketResponse] = await Promise.all([
       axios.get(`${apiBaseUrl}/trades/window`, { headers }),
       axios.get(`${apiBaseUrl}/trades/offers`, { headers }),
@@ -50,10 +56,10 @@ export default function TeamMarket({
         requestError.response?.data?.message || "Unable to load trade room",
       );
     });
-  }, [token, teamId]);
+  }, [token, teamId, isTeamApproved]);
 
   useEffect(() => {
-    if (!socket) return undefined;
+    if (!socket || !isTeamApproved) return undefined;
     const onTradeUpdate = () => {
       refresh().catch(() => setError("Unable to refresh trade offers"));
     };
@@ -66,7 +72,7 @@ export default function TeamMarket({
       socket.off("trade_market_updated", onTradeUpdate);
       socket.off("trade_window_updated", onWindowUpdate);
     };
-  }, [socket, token, teamId]);
+  }, [socket, token, teamId, isTeamApproved]);
 
   const sendOffer = async (event) => {
     event.preventDefault();
@@ -311,6 +317,23 @@ export default function TeamMarket({
   );
   const activeSellerRequest = windowOpen ? sellerQueue[0] : null;
   const activeBuyerNotice = activeSellerRequest ? null : buyerQueue[0];
+
+  if (!isTeamApproved) {
+    return (
+      <section className="card team-market">
+        <div className="section-heading market-heading">
+          <div>
+            <span className="eyebrow">THE TRADE DESK</span>
+            <h2><ArrowLeftRight size={19} /> Player exchange</h2>
+          </div>
+          <span className="trade-window-state closed"><i /> LOCKED</span>
+        </div>
+        <p className="muted" role="status">
+          Trading unlocks after your team payment is approved.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="card team-market">

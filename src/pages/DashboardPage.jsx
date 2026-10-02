@@ -9,6 +9,7 @@ import TeamMarket from "../components/TeamMarket";
 import TeamRosterBoard from "../components/TeamRosterBoard";
 import { AuctionVoiceListener } from "../components/AuctionAudio";
 import PaymentApprovalModal from "../components/PaymentApprovalModal";
+import TeamCaptainChat from "../components/TeamCaptainChat";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 
@@ -327,6 +328,11 @@ export default function DashboardPage() {
             <div className="participant-masthead-stripes" aria-hidden="true" />
           </section>
 
+          {user.role === "PARTICIPANT" &&
+            members.some((member) => member.user_id === user.id && member.is_leader) && (
+              <TeamCaptainChat socket={socket} teamName={myTeam?.name} />
+            )}
+
           {user.role === "PARTICIPANT" && (
             <AuctionVoiceListener socket={socket} />
           )}
@@ -545,6 +551,8 @@ export default function DashboardPage() {
                 token={token}
                 teamId={myTeam.id}
                 teams={teamRosters}
+                isTeamApproved={teamPaymentApproved}
+                onApprovalRequired={() => setApprovalModalOpen(true)}
                 ownRoster={
                   teamRosters.find((team) => team.team_id === myTeam.id)
                     ?.players || []

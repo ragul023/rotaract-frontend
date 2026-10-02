@@ -11,6 +11,7 @@ export default function RegisterPage() {
     teamName: "",
     leaderName: "",
     leaderEmail: "",
+    leaderPhone: "",
     leaderRegisterNumber: "",
     department: "",
     password: "",
@@ -142,6 +143,20 @@ export default function RegisterPage() {
                     value={form.leaderEmail}
                     onChange={(event) =>
                       setForm({ ...form, leaderEmail: event.target.value })
+                    }
+                  />
+                  <input
+                    required
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    minLength="7"
+                    maxLength="20"
+                    pattern="\\+?[0-9\\s()-]{7,20}"
+                    placeholder="Captain mobile number"
+                    value={form.leaderPhone}
+                    onChange={(event) =>
+                      setForm({ ...form, leaderPhone: event.target.value })
                     }
                   />
                   <input

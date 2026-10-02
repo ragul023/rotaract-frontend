@@ -251,6 +251,13 @@ export default function RegistrationAdminPage() {
                           <td data-label="Captain">
                             {registration.captain_name}
                             <small>{registration.captain_email}</small>
+                            {registration.captain_phone && (
+                              <small>
+                                <a href={`tel:${registration.captain_phone}`}>
+                                  {registration.captain_phone}
+                                </a>
+                              </small>
+                            )}
                           </td>
                           <td data-label="Members">{registration.team_size}</td>
                           <td data-label="Registered">
@@ -302,8 +309,9 @@ export default function RegistrationAdminPage() {
                               >
                                 {isOpen ? "Hide team" : "View team"}
                               </button>
-                              {registration.payment_status ===
-                                "PENDING_VERIFICATION" && (
+                              {user.role === "SUPER_ADMIN" &&
+                                registration.payment_status ===
+                                  "PENDING_VERIFICATION" && (
                                 <>
                                   <button
                                     className="btn primary"

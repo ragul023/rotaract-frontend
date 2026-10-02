@@ -312,13 +312,41 @@ export default function TeamPaymentPage() {
                 </button>
               </div>
             ) : (
-              <div className="registration-qr-placeholder">
-                <img
-                  className="registration-qr-image"
-                  src="/upi-qr.png"
-                  alt="UPI payment QR code"
-                />
-              </div>
+              <>
+                <div className="registration-qr-placeholder">
+                  <img
+                    className="registration-qr-image"
+                    src="/upi-qr.png"
+                    alt="UPI payment QR code"
+                  />
+                </div>
+                {paymentRejected && (
+                  <p className="registration-config-note" role="status">
+                    The previous payment reference was rejected. Pay again if needed, then submit the correct UPI transaction ID.
+                  </p>
+                )}
+                {canSubmitReference && registration.is_captain && (
+                  <form className="registration-payment-form" onSubmit={submitReference}>
+                    <label className="form-section-label" htmlFor="upi-transaction-id">
+                      UPI TRANSACTION ID / UTR
+                    </label>
+                    <input
+                      id="upi-transaction-id"
+                      required
+                      minLength="6"
+                      maxLength="255"
+                      autoComplete="off"
+                      placeholder="Enter the transaction ID after paying"
+                      value={paymentReference}
+                      onChange={(event) => setPaymentReference(event.target.value)}
+                    />
+                    <p>After paying with the QR code, enter the transaction ID so the Super Admin can verify your payment.</p>
+                    <button className="btn primary" type="submit" disabled={busy || paymentReference.trim().length < 6}>
+                      {busy ? "Submitting..." : "Submit transaction ID"}
+                    </button>
+                  </form>
+                )}
+              </>
             )}
             {!registration.is_captain && !isConfirmed && (
               <p className="registration-config-note">
