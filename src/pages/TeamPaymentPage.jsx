@@ -296,78 +296,12 @@ export default function TeamPaymentPage() {
                 </button>
               </div>
             ) : (
-              <div className="registration-payment-layout">
-                <div
-                  className="registration-qr-placeholder"
-                  aria-label="Placeholder for event UPI QR code"
-                >
-                  <div className="qr-mark">
-                    <span />
-                    <span />
-                    <span />
-                    <b>UPI</b>
-                  </div>
-                  <strong>UPI QR CODE</strong>
-                  <small>QR IMAGE PLACEHOLDER</small>
-                </div>
-                <form
-                  className="registration-payment-form"
-                  onSubmit={submitReference}
-                >
-                  <span className="eyebrow">
-                    {paymentRejected
-                      ? "PAYMENT REJECTED"
-                      : "MANUAL UPI PAYMENT"}
-                  </span>
-                  <h3>
-                    {paymentRejected
-                      ? "Submit a corrected reference"
-                      : "Captain pays once"}
-                  </h3>
-                  <p>
-                    {paymentRejected
-                      ? "Check the reference and submit it again for review."
-                      : "Pay the amount shown, then enter the UPI transaction or reference ID. The team stays pending until the admin verifies it."}
-                  </p>
-                  {canSubmitReference && (
-                    <label className="registration-field">
-                      <span>UPI transaction / reference ID</span>
-                      <input
-                        value={paymentReference}
-                        onChange={(event) =>
-                          setPaymentReference(event.target.value)
-                        }
-                        minLength={6}
-                        maxLength={255}
-                        required
-                      />
-                    </label>
-                  )}
-                  {canSubmitReference && (
-                    <div className="registration-no-proof">
-                      A screenshot alone is not accepted as proof of payment.
-                    </div>
-                  )}
-                  {canSubmitReference ? (
-                    <button
-                      className="btn primary"
-                      type="submit"
-                      disabled={busy}
-                    >
-                      {busy ? "Submitting..." : "Submit for admin approval"}
-                      <ArrowRight size={16} />
-                    </button>
-                  ) : (
-                    <button
-                      className="btn primary"
-                      type="button"
-                      disabled={busy}
-                      onClick={refresh}
-                    >
-                      Refresh payment status
-                    </button>
-                  )}
-                </form>
+              <div className="registration-qr-placeholder">
+                <img
+                  className="registration-qr-image"
+                  src="/upi-qr.jpg"
+                  alt="UPI QR code placeholder"
+                />
               </div>
             )}
             {!registration.is_captain && !isConfirmed && (
