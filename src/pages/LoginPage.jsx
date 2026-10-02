@@ -9,9 +9,13 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
     try {
       const result = await login(form);
       const destination = ["SUPER_ADMIN", "AUCTION_ADMIN"].includes(
@@ -24,6 +28,8 @@ export default function LoginPage() {
       navigate(destination);
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -61,8 +67,13 @@ export default function LoginPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           {error && <div style={{ color: "#fca5a5" }}>{error}</div>}
-          <button className="btn primary" type="submit">
-            Login
+          <button
+            className="btn primary"
+            type="submit"
+            disabled={submitting}
+            aria-busy={submitting}
+          >
+            {submitting ? "Signing in..." : "Login"}
           </button>
           <Link to="/register">
             <button

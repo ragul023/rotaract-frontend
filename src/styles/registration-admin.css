@@ -229,6 +229,14 @@
   color: var(--success);
   background: rgba(97, 184, 255, 0.08);
 }
+.registration-admin-refreshing {
+  animation: registration-admin-spin 800ms linear infinite;
+}
+@keyframes registration-admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (max-width: 700px) {
   .registration-admin-header {
     align-items: flex-start;

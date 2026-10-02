@@ -14,6 +14,8 @@ export default function RegistrationAdminPage() {
   const [fee, setFee] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState("");
+  const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -30,6 +32,7 @@ export default function RegistrationAdminPage() {
   const headers = { Authorization: `Bearer ${token}` };
   const loadData = useCallback(async () => {
     if (!token) return;
+    setLoadingData(true);
     setError("");
     try {
       const [registrationResponse, settingsResponse] = await Promise.all([
@@ -51,6 +54,8 @@ export default function RegistrationAdminPage() {
         requestError.response?.data?.message ||
           "Unable to load team registrations",
       );
+    } finally {
+      setLoadingData(false);
     }
   }, [token]);
 
@@ -60,7 +65,9 @@ export default function RegistrationAdminPage() {
 
   const saveFee = async (event) => {
     event.preventDefault();
+    if (busy) return;
     setBusy(true);
+    setBusyAction("fee");
     setError("");
     setNotice("");
     try {
@@ -79,12 +86,15 @@ export default function RegistrationAdminPage() {
           "Unable to save registration fee",
       );
     } finally {
+      setBusyAction("");
       setBusy(false);
     }
   };
 
   const decidePayment = async (registrationId, decision) => {
+    if (busy) return;
     setBusy(true);
+    setBusyAction(`${decision}:${registrationId}`);
     setError("");
     setNotice("");
     try {
@@ -105,6 +115,7 @@ export default function RegistrationAdminPage() {
           "Unable to update payment status",
       );
     } finally {
+      setBusyAction("");
       setBusy(false);
     }
   };
@@ -166,8 +177,9 @@ export default function RegistrationAdminPage() {
                 className="btn primary"
                 type="submit"
                 disabled={busy || !fee}
+                aria-busy={busyAction === "fee"}
               >
-                Save fee
+                {busyAction === "fee" ? "Saving..." : "Save fee"}
               </button>
             </div>
           </form>
@@ -185,11 +197,20 @@ export default function RegistrationAdminPage() {
             <button
               className="icon-action"
               type="button"
-              aria-label="Refresh registrations"
-              title="Refresh"
+              aria-label={
+                loadingData
+                  ? "Refreshing registrations"
+                  : "Refresh registrations"
+              }
+              aria-busy={loadingData}
+              title={loadingData ? "Refreshing..." : "Refresh"}
+              disabled={loadingData || busy}
               onClick={loadData}
             >
-              <RefreshCw size={16} />
+              <RefreshCw
+                size={16}
+                className={loadingData ? "registration-admin-refreshing" : ""}
+              />
             </button>
           </div>
           {registrations.length === 0 ? (
@@ -288,21 +309,31 @@ export default function RegistrationAdminPage() {
                                     className="btn primary"
                                     type="button"
                                     disabled={busy}
+                                    aria-busy={
+                                      busyAction === `verify:${registration.id}`
+                                    }
                                     onClick={() =>
                                       decidePayment(registration.id, "verify")
                                     }
                                   >
-                                    Verify
+                                    {busyAction === `verify:${registration.id}`
+                                      ? "Verifying..."
+                                      : "Verify"}
                                   </button>
                                   <button
                                     className="btn secondary reject"
                                     type="button"
                                     disabled={busy}
+                                    aria-busy={
+                                      busyAction === `reject:${registration.id}`
+                                    }
                                     onClick={() =>
                                       decidePayment(registration.id, "reject")
                                     }
                                   >
-                                    Reject
+                                    {busyAction === `reject:${registration.id}`
+                                      ? "Rejecting..."
+                                      : "Reject"}
                                   </button>
                                 </>
                               )}

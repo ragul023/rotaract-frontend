@@ -20,9 +20,12 @@ export default function RegisterPage() {
     teamCode: "",
   });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     setError("");
     try {
       if (flow === "CREATE") {
@@ -43,6 +46,8 @@ export default function RegisterPage() {
       setError(
         err.response?.data?.message || "Unable to complete registration",
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -80,6 +85,7 @@ export default function RegisterPage() {
           >
             <button
               type="button"
+              disabled={submitting}
               className={flow === "CREATE" ? "selected" : ""}
               aria-pressed={flow === "CREATE"}
               onClick={() => {
@@ -91,6 +97,7 @@ export default function RegisterPage() {
             </button>
             <button
               type="button"
+              disabled={submitting}
               className={flow === "JOIN" ? "selected" : ""}
               aria-pressed={flow === "JOIN"}
               onClick={() => {
@@ -233,9 +240,20 @@ export default function RegisterPage() {
                 {error}
               </div>
             )}
-            <button className="btn primary" type="submit">
-              {flow === "CREATE" ? "Create team" : "Join team"}{" "}
-              <ArrowRight size={16} />
+            <button
+              className="btn primary"
+              type="submit"
+              disabled={submitting}
+              aria-busy={submitting}
+            >
+              {submitting
+                ? flow === "CREATE"
+                  ? "Creating team..."
+                  : "Joining team..."
+                : flow === "CREATE"
+                  ? "Create team"
+                  : "Join team"}
+              {!submitting && <ArrowRight size={16} />}
             </button>
           </form>
         </>

@@ -270,6 +270,7 @@ export default function AdminPage() {
   const [selectedPlayer, setSelectedPlayer] = useState("");
   const [queueSearch, setQueueSearch] = useState("");
   const [tradeWindowOpen, setTradeWindowOpen] = useState(false);
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 7 } }),
     useSensor(KeyboardSensor, {
@@ -406,6 +407,7 @@ export default function AdminPage() {
       setQueueData(queueResponse.data);
       setPlayerQueue(queueResponse.data.queue);
       if (action === "finish") {
+        setFinishConfirmOpen(false);
         setNotice("Auction finished. Teams can now select their playing XI.");
       }
     } catch (requestError) {
@@ -900,14 +902,8 @@ export default function AdminPage() {
                     className="btn secondary"
                     disabled={busy}
                     onClick={() => {
-                      const currentPlayerWillBeUnsold = [
-                        "BIDDING",
-                        "AUCTION_PAUSED",
-                      ].includes(status);
-                      const message = currentPlayerWillBeUnsold
-                        ? "Finish the auction now? The current player will be marked unsold. Teams can then select their playing XI."
-                        : "Finish the auction now? Teams can then select their playing XI.";
-                      if (window.confirm(message)) performAction("finish");
+                      setError("");
+                      setFinishConfirmOpen(true);
                     }}
                   >
                     Finish auction
@@ -1511,6 +1507,55 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+      {finishConfirmOpen && (
+        <div
+          className="auction-finish-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !busy) {
+              setFinishConfirmOpen(false);
+            }
+          }}
+        >
+          <section
+            className="auction-finish-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auction-finish-title"
+          >
+            <span className="eyebrow">FINALIZE AUCTION</span>
+            <h2 id="auction-finish-title">Finish the auction?</h2>
+            <p>
+              Any player still on the block will be marked unsold. Every active
+              team must already have 11–18 squad players and exactly 11 selected
+              for its playing XI. After finishing, teams cannot change their XI.
+            </p>
+            {error && (
+              <p className="auction-finish-error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="auction-finish-actions">
+              <button
+                className="btn secondary"
+                type="button"
+                disabled={busy}
+                onClick={() => setFinishConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn primary"
+                type="button"
+                disabled={busy}
+                aria-busy={busy}
+                onClick={() => performAction("finish")}
+              >
+                {busy ? "Finishing..." : "Finish auction"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

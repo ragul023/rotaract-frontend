@@ -16,6 +16,7 @@ export default function TeamPaymentPage() {
   const [fee, setFee] = useState(null);
   const [paymentReference, setPaymentReference] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyingTeamCode, setCopyingTeamCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const headers = { Authorization: `Bearer ${token}` };
@@ -114,8 +115,17 @@ export default function TeamPaymentPage() {
   };
 
   const copyTeamCode = async () => {
-    await navigator.clipboard.writeText(registration.team_code);
-    setCopied(true);
+    if (copyingTeamCode) return;
+    setCopyingTeamCode(true);
+    setError("");
+    try {
+      await navigator.clipboard.writeText(registration.team_code);
+      setCopied(true);
+    } catch {
+      setError("Clipboard access is unavailable in this browser");
+    } finally {
+      setCopyingTeamCode(false);
+    }
   };
 
   if (loading || !user) return null;
@@ -196,10 +206,16 @@ export default function TeamPaymentPage() {
             <button
               className="btn primary"
               type="button"
+              disabled={copyingTeamCode}
+              aria-busy={copyingTeamCode}
               onClick={copyTeamCode}
             >
               <Copy size={16} />
-              {copied ? "Copied" : "Copy team code"}
+              {copyingTeamCode
+                ? "Copying..."
+                : copied
+                  ? "Copied"
+                  : "Copy team code"}
             </button>
             <button
               className="btn secondary"

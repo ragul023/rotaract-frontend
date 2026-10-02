@@ -34,6 +34,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyingInviteCode, setCopyingInviteCode] = useState(false);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [selectedXI, setSelectedXI] = useState([]);
   const [savingXI, setSavingXI] = useState(false);
@@ -143,13 +144,18 @@ export default function TeamPage() {
       )
     : [];
   const hasSavedPlayingXI = players.some((player) => player.is_playing_xi);
+  const playingXILocked = auctionCompleted || team.playing_xi_locked;
 
   const copyInviteCode = async () => {
+    if (copyingInviteCode) return;
+    setCopyingInviteCode(true);
     try {
       await navigator.clipboard.writeText(team.code);
       setCopied(true);
     } catch {
       setError("Clipboard access is unavailable in this browser");
+    } finally {
+      setCopyingInviteCode(false);
     }
   };
 
@@ -267,13 +273,18 @@ export default function TeamPage() {
                 <button
                   type="button"
                   className="icon-action"
+                  disabled={copyingInviteCode}
                   onClick={copyInviteCode}
                   aria-label="Copy invite code"
-                  title="Copy invite code"
+                  title={copyingInviteCode ? "Copying..." : "Copy invite code"}
                 >
-                  <Copy size={16} />
+                  <Copy size={16} aria-hidden="true" />
                 </button>
-                {copied && <small role="status">COPIED</small>}
+                {copyingInviteCode ? (
+                  <small role="status">COPYING...</small>
+                ) : copied ? (
+                  <small role="status">COPIED</small>
+                ) : null}
               </div>
             ) : (
               <div className="team-invite-card">
@@ -381,7 +392,7 @@ export default function TeamPage() {
             <div>
               <span className="eyebrow">FINAL LINEUP</span>
               <strong>
-                {team.playing_xi_locked ? (
+                {playingXILocked ? (
                   <>
                     <LockKeyhole size={15} /> Playing XI locked
                   </>
@@ -394,16 +405,14 @@ export default function TeamPage() {
                   ? `Your squad needs at least 11 players. ${11 - players.length} more required.`
                   : players.length > 18
                     ? "A squad can contain no more than 18 players."
-                    : team.playing_xi_locked
+                    : playingXILocked
                       ? "Scores have been finalized for this XI."
                       : hasSavedPlayingXI
-                        ? "Playing XI saved. You can update it until scores are finalized."
-                        : !auctionCompleted
-                          ? "Selection opens after the auction is complete."
-                          : "Select 11 players for your final lineup."}
+                        ? "Playing XI saved. You can update it until the auction is finished."
+                        : "Select and save 11 players any time before the auction is finished."}
               </small>
             </div>
-            {!team.playing_xi_locked && (
+            {!playingXILocked && (
               <button
                 className="btn primary"
                 type="button"
@@ -421,7 +430,7 @@ export default function TeamPage() {
                   ? "Saving..."
                   : hasSavedPlayingXI
                     ? "Update playing XI"
-                    : "Fix playing XI"}
+                    : "Save playing XI"}
               </button>
             )}
           </div>
@@ -472,8 +481,7 @@ export default function TeamPage() {
                         type="button"
                         aria-pressed={selectedXI.includes(player.player_id)}
                         disabled={
-                          !auctionCompleted ||
-                          team.playing_xi_locked ||
+                          playingXILocked ||
                           (!selectedXI.includes(player.player_id) &&
                             selectedXI.length === 11)
                         }

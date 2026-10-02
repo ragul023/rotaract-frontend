@@ -2438,6 +2438,57 @@ body {
   background: rgba(132, 197, 219, 0.1);
 }
 
+.auction-finish-backdrop {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(3, 7, 5, 0.82);
+  backdrop-filter: blur(4px);
+}
+.auction-finish-modal {
+  width: min(100%, 460px);
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--brand);
+  border-radius: 5px;
+  padding: 22px;
+  background: var(--panel);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.auction-finish-modal h2 {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.auction-finish-modal > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.auction-finish-modal .auction-finish-error {
+  border-left: 2px solid var(--danger);
+  padding: 8px 10px;
+  color: var(--danger);
+  background: rgba(255, 131, 120, 0.08);
+}
+.auction-finish-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.auction-finish-actions .btn {
+  min-height: 40px;
+  font-size: 10px;
+}
+
 @media (max-width: 680px) {
   .team-members-strip {
     grid-template-columns: 1fr;
@@ -2491,6 +2542,15 @@ body {
     flex-direction: column-reverse;
   }
   .trade-request-actions .btn {
+    justify-content: center;
+  }
+  .auction-finish-modal {
+    padding: 17px;
+  }
+  .auction-finish-actions {
+    flex-direction: column-reverse;
+  }
+  .auction-finish-actions .btn {
     justify-content: center;
   }
   .trade-offer-row {
