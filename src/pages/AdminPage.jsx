@@ -270,7 +270,6 @@ export default function AdminPage() {
   const [selectedPlayer, setSelectedPlayer] = useState("");
   const [queueSearch, setQueueSearch] = useState("");
   const [tradeWindowOpen, setTradeWindowOpen] = useState(false);
-  const [bidTime, setBidTime] = useState(30);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 7 } }),
     useSensor(KeyboardSensor, {
@@ -291,7 +290,6 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     if (!loading && !user) navigate("/login");
@@ -317,7 +315,6 @@ export default function AdminPage() {
       axios.get(`${apiBaseUrl}/admin/reveal-settings`, { headers }),
       axios.get(`${apiBaseUrl}/admin/player-queue`, { headers }),
       axios.get(`${apiBaseUrl}/admin/trade-window`, { headers }),
-      axios.get(`${apiBaseUrl}/admin/bid-time`, { headers }),
     ])
       .then(
         ([
@@ -330,7 +327,6 @@ export default function AdminPage() {
           revealResponse,
           queueResponse,
           tradeWindowResponse,
-          bidTimeResponse,
         ]) => {
           setAuction(stateResponse.data.state);
           setOverview(overviewResponse.data);
@@ -342,7 +338,6 @@ export default function AdminPage() {
           setQueueData(queueResponse.data);
           setPlayerQueue(queueResponse.data.queue);
           setTradeWindowOpen(tradeWindowResponse.data.open);
-          setBidTime(bidTimeResponse.data.seconds);
         },
       )
       .catch((requestError) => {
@@ -388,11 +383,6 @@ export default function AdminPage() {
       socket.off("connect", refreshAuctionSummary);
     };
   }, [socket, token]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   const performAction = async (action, payload = {}) => {
     setBusy(true);
@@ -512,29 +502,6 @@ export default function AdminPage() {
     }
   };
 
-  const saveBidTime = async () => {
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const response = await axios.put(
-        `${apiBaseUrl}/admin/bid-time`,
-        { seconds: Number(bidTime) },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      setBidTime(response.data.seconds);
-      setAuction(response.data.state);
-      setNotice("Default bid time saved. The active countdown is unchanged.");
-    } catch (requestError) {
-      setError(
-        requestError.response?.data?.message ||
-          "Unable to save default bid time",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const moveQueuePlayer = (index, offset) => {
     const nextIndex = index + offset;
     if (nextIndex < 0 || nextIndex >= playerQueue.length) return;
@@ -629,9 +596,6 @@ export default function AdminPage() {
   }
 
   const status = auction?.status || "LOADING";
-  const timeLeft = auction?.bid_ends_at
-    ? Math.max(0, Math.ceil((Date.parse(auction.bid_ends_at) - now) / 1000))
-    : 0;
   const canSell =
     status === "BIDDING" &&
     auction?.highest_bidder_team_id &&
@@ -791,8 +755,8 @@ export default function AdminPage() {
               <strong>{overview?.activeTeams ?? "--"}</strong>
             </div>
             <div className="card stat-card">
-              <h3>Bid timer</h3>
-              <strong>{timeLeft}s</strong>
+              <h3>Bid sequence</h3>
+              <strong>{auction?.current_sequence ?? 0}</strong>
             </div>
           </div>
 
@@ -1137,61 +1101,6 @@ export default function AdminPage() {
                 </span>
               </div>
             )}
-          </section>
-
-          <section className="card" style={{ padding: 22 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <h2 style={{ margin: 0 }}>Default bid time</h2>
-                <p className="muted" style={{ margin: "6px 0 0" }}>
-                  Sets upcoming bid windows. The current countdown will not
-                  reset.
-                </p>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "end",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <label className="muted" style={{ display: "grid", gap: 5 }}>
-                  Seconds per player
-                  <input
-                    type="number"
-                    min="5"
-                    max="600"
-                    step="1"
-                    value={bidTime}
-                    onChange={(event) => setBidTime(Number(event.target.value))}
-                    style={{
-                      width: 150,
-                      padding: "9px 10px",
-                      border: "1px solid var(--line)",
-                      borderRadius: 4,
-                      background: "var(--panel-alt)",
-                      color: "var(--text)",
-                    }}
-                  />
-                </label>
-                <button
-                  className="btn primary"
-                  disabled={busy || bidTime < 5 || bidTime > 600}
-                  onClick={saveBidTime}
-                >
-                  <Save size={15} /> Save bid time
-                </button>
-              </div>
-            </div>
           </section>
 
           <section className="card" style={{ padding: 22 }}>

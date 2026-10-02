@@ -11,7 +11,6 @@ export default function ViewerPage() {
   const { socket } = useSocket();
   const [auction, setAuction] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     const token = localStorage.getItem("rotaract_token");
@@ -53,15 +52,6 @@ export default function ViewerPage() {
       socket.off("connect", refreshLeaderboard);
     };
   }, [socket]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const timeLeft = auction?.bid_ends_at
-    ? Math.max(0, Math.ceil((Date.parse(auction.bid_ends_at) - now) / 1000))
-    : 0;
 
   return (
     <div className="app-shell">
@@ -125,10 +115,6 @@ export default function ViewerPage() {
                     ? ` · ${auction.player_country}`
                     : ""}
                 </p>
-              </div>
-              <div className="viewer-countdown">
-                <strong>{timeLeft}</strong>
-                <span>SECONDS</span>
               </div>
             </div>
             <div

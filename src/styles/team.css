@@ -371,24 +371,35 @@
   font-size: 7px;
   font-weight: 800;
 }
-.playing-xi-select {
+.playing-xi-toggle {
+  width: 100%;
+  min-height: 38px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 7px;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 9px;
   font-weight: 800;
   cursor: pointer;
 }
-.playing-xi-select input {
-  width: 13px;
-  height: 13px;
-  margin: 0;
-  accent-color: var(--brand);
+.playing-xi-toggle.is-selected {
+  border-color: var(--brand);
+  color: #17130a;
+  background: var(--brand);
 }
-.playing-xi-select input:disabled {
+.playing-xi-toggle:disabled {
   cursor: not-allowed;
+  opacity: 0.5;
+}
+.playing-xi-toggle:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 .team-player-details h3 {
   margin: 5px 0 3px;

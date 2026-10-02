@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
 import PlayerImage from "../components/PlayerImage";
-import { ArrowRight, ClipboardList, Shield, Timer, Zap } from "lucide-react";
+import { ArrowRight, ClipboardList, Shield, Zap } from "lucide-react";
 import TeamMarket from "../components/TeamMarket";
 import TeamRosterBoard from "../components/TeamRosterBoard";
 import { AuctionVoiceListener } from "../components/AuctionAudio";
@@ -26,7 +26,6 @@ export default function DashboardPage() {
   const [powerBusy, setPowerBusy] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [bidError, setBidError] = useState("");
-  const [now, setNow] = useState(Date.now());
   const [bidPending, setBidPending] = useState(false);
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const teamPaymentApproved = myTeam?.registration_status === "CONFIRMED";
@@ -82,17 +81,14 @@ export default function DashboardPage() {
       }
     };
     const onObjectiveRevealed = (payload) => setAssignment(payload);
-    const onPowerUsed = (payload, powerKey) => {
+    const onSuperSteal = (payload) => {
       if (payload?.teamId !== myTeam?.id) return;
       setPowers((current) => ({
         ...current,
-        [powerKey === "SUPER_STEAL" ? "superStealUsed" : "tacticalTimeoutUsed"]:
-          true,
+        superStealUsed: true,
+        canSuperSteal: false,
       }));
     };
-    const onSuperSteal = (payload) => onPowerUsed(payload, "SUPER_STEAL");
-    const onTacticalTimeout = (payload) =>
-      onPowerUsed(payload, "TACTICAL_TIMEOUT");
     const onRostersUpdated = () => {
       const headers = { Authorization: `Bearer ${token}` };
       Promise.all([
@@ -112,7 +108,6 @@ export default function DashboardPage() {
     socket.on("bid_rejected", onBidRejected);
     socket.on("objective_revealed", onObjectiveRevealed);
     socket.on("super_steal_claimed", onSuperSteal);
-    socket.on("tactical_timeout_used", onTacticalTimeout);
     socket.on("team_rosters_updated", onRostersUpdated);
     socket.on("team_registration_updated", onRostersUpdated);
     socket.on("connect", onRostersUpdated);
@@ -121,17 +116,11 @@ export default function DashboardPage() {
       socket.off("bid_rejected", onBidRejected);
       socket.off("objective_revealed", onObjectiveRevealed);
       socket.off("super_steal_claimed", onSuperSteal);
-      socket.off("tactical_timeout_used", onTacticalTimeout);
       socket.off("team_rosters_updated", onRostersUpdated);
       socket.off("team_registration_updated", onRostersUpdated);
       socket.off("connect", onRostersUpdated);
     };
   }, [socket, myTeam?.id, token]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (!auction?.current_player_id) return;
@@ -174,7 +163,7 @@ export default function DashboardPage() {
     );
   };
 
-  const usePower = async (power) => {
+  const useSuperSteal = async () => {
     if (!teamPaymentApproved) {
       setApprovalModalOpen(true);
       return;
@@ -183,19 +172,16 @@ export default function DashboardPage() {
     setPowerBusy(true);
     setBidError("");
     try {
-      const endpoint =
-        power === "SUPER_STEAL" ? "super-steal" : "tactical-timeout";
       const response = await axios.post(
-        `${apiBaseUrl}/auction/${endpoint}`,
-        power === "SUPER_STEAL" ? { playerId: auction.current_player_id } : {},
+        `${apiBaseUrl}/auction/super-steal`,
+        { playerId: auction.current_player_id },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       setAuction(response.data.state);
       setPowers((current) => ({
         ...current,
-        ...(power === "SUPER_STEAL"
-          ? { superStealUsed: true, canSuperSteal: false }
-          : { tacticalTimeoutUsed: true, canUseTacticalTimeout: false }),
+        superStealUsed: true,
+        canSuperSteal: false,
       }));
       setBidError("");
     } catch (requestError) {
@@ -222,14 +208,12 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const status = auction?.status || "LOADING";
-  const timeLeft = auction?.bid_ends_at
-    ? Math.max(0, Math.ceil((Date.parse(auction.bid_ends_at) - now) / 1000))
-    : 0;
   const minBid = auction?.highest_bidder_team_id
     ? Number(auction.current_bid) + Number(auction.bid_increment)
     : Number(auction?.player_base_price || 0);
   const canBid =
     user.role === "PARTICIPANT" &&
+    teamPaymentApproved &&
     teamPaymentApproved &&
     status === "BIDDING" &&
     Boolean(auction?.current_player_id) &&
@@ -243,14 +227,6 @@ export default function DashboardPage() {
     auction?.highest_bidder_team_id !== myTeam?.id &&
     Number(auction?.current_bid || 0) <= Number(wallet?.available_purse || 0) &&
     !powers?.superStealUsed;
-  const canUseTacticalTimeout =
-    user.role === "PARTICIPANT" &&
-    teamPaymentApproved &&
-    status === "BIDDING" &&
-    Boolean(auction?.bid_ends_at) &&
-    timeLeft > 0 &&
-    !powers?.tacticalTimeoutUsed;
-
   return (
     <div className="app-shell">
       {approvalModalOpen && (
@@ -339,10 +315,7 @@ export default function DashboardPage() {
             </div>
             <div className="participant-masthead-status">
               <span>{status.replaceAll("_", " ")}</span>
-              <strong>
-                {timeLeft}
-                <small>SEC</small>
-              </strong>
+              <strong>{status === "BIDDING" ? "BIDS OPEN" : "AUCTION"}</strong>
             </div>
             <div className="participant-masthead-stripes" aria-hidden="true" />
           </section>
@@ -383,8 +356,8 @@ export default function DashboardPage() {
               </strong>
             </div>
             <div className="card stat-card">
-              <h3>Timer</h3>
-              <strong>{timeLeft}s</strong>
+              <h3>Bid sequence</h3>
+              <strong>{auction?.current_sequence ?? 0}</strong>
             </div>
             <div className="card stat-card">
               <h3>Current bid</h3>
@@ -441,13 +414,6 @@ export default function DashboardPage() {
                       : ""}
                   </div>
                 </div>
-              </div>
-              <div
-                className="countdown-clock"
-                aria-label={`${timeLeft} seconds remaining`}
-              >
-                <strong>{timeLeft}</strong>
-                <span>SECONDS</span>
               </div>
             </div>
             <div className="grid-2" style={{ marginTop: 20 }}>
@@ -518,7 +484,7 @@ export default function DashboardPage() {
                     disabled={
                       teamPaymentApproved && (!canSuperSteal || powerBusy)
                     }
-                    onClick={() => usePower("SUPER_STEAL")}
+                    onClick={useSuperSteal}
                   >
                     <span className="power-icon">
                       <Zap size={18} />
@@ -532,28 +498,6 @@ export default function DashboardPage() {
                       </small>
                     </span>
                     <Shield size={16} />
-                  </button>
-                  <button
-                    className="power-button timeout-button"
-                    type="button"
-                    disabled={
-                      teamPaymentApproved &&
-                      (!canUseTacticalTimeout || powerBusy)
-                    }
-                    onClick={() => usePower("TACTICAL_TIMEOUT")}
-                  >
-                    <span className="power-icon">
-                      <Timer size={18} />
-                    </span>
-                    <span>
-                      <strong>Tactical Timeout</strong>
-                      <small>
-                        {powers?.tacticalTimeoutUsed
-                          ? "USED THIS AUCTION"
-                          : "ADD 10 SECONDS · ONCE PER TEAM"}
-                      </small>
-                    </span>
-                    <span className="power-count">+10s</span>
                   </button>
                 </div>
               )}

@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  Plus,
   UsersRound,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -458,20 +459,38 @@ export default function TeamPage() {
                       <div className="team-player-role">
                         {player.role?.replaceAll("_", " ")}
                       </div>
-                      <label className="playing-xi-select">
-                        <input
-                          type="checkbox"
-                          checked={selectedXI.includes(player.player_id)}
-                          disabled={
-                            !auctionCompleted ||
-                            team.playing_xi_locked ||
-                            (!selectedXI.includes(player.player_id) &&
-                              selectedXI.length === 11)
-                          }
-                          onChange={() => togglePlayingXI(player.player_id)}
-                        />
-                        <span>PLAYING XI</span>
-                      </label>
+                      <button
+                        className={`playing-xi-toggle${selectedXI.includes(player.player_id) ? " is-selected" : ""}`}
+                        type="button"
+                        aria-pressed={selectedXI.includes(player.player_id)}
+                        disabled={
+                          !auctionCompleted ||
+                          team.playing_xi_locked ||
+                          (!selectedXI.includes(player.player_id) &&
+                            selectedXI.length === 11)
+                        }
+                        title={
+                          !auctionCompleted
+                            ? "Selection opens after the auction is complete"
+                            : team.playing_xi_locked
+                              ? "The playing XI is locked after scoring"
+                              : selectedXI.includes(player.player_id)
+                                ? "Remove from playing XI"
+                                : "Add to playing XI"
+                        }
+                        onClick={() => togglePlayingXI(player.player_id)}
+                      >
+                        {selectedXI.includes(player.player_id) ? (
+                          <Check size={15} aria-hidden="true" />
+                        ) : (
+                          <Plus size={15} aria-hidden="true" />
+                        )}
+                        <span>
+                          {selectedXI.includes(player.player_id)
+                            ? "Selected for playing XI"
+                            : "Add to playing XI"}
+                        </span>
+                      </button>
                       <h3>{player.display_name || player.name}</h3>
                       <p>
                         {player.country} ·{" "}
