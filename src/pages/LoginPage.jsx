@@ -33,7 +33,7 @@ export default function LoginPage() {
         <div className="login-brandline">
           <img
             className="brand-mark"
-            src="/rotaract-logo.jpe"
+            src="/rotaract-logo.jpeg"
             alt="Rotaract Club of ACCET"
           />
           <div>
