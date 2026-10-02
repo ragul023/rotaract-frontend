@@ -122,6 +122,27 @@
   font-weight: 700;
 }
 
+.auction-result-player-image {
+  width: 96px;
+  height: 96px;
+  display: block;
+  margin: 14px auto 10px;
+  border: 2px solid rgba(240, 185, 79, 0.48);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--panel-alt);
+}
+
+.auction-result-details .auction-result-method {
+  grid-column: 1 / -1;
+  border-color: rgba(240, 185, 79, 0.38);
+  background: rgba(240, 185, 79, 0.08);
+}
+
+.auction-result-method strong {
+  color: var(--brand-2);
+}
+
 .auction-result-details {
   display: grid;
   grid-template-columns: 1fr 1fr;

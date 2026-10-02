@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, X } from "lucide-react";
+import PlayerImage from "./PlayerImage";
 
 export default function AuctionResultModal({ socket }) {
   const [result, setResult] = useState(null);
@@ -59,9 +60,22 @@ export default function AuctionResultModal({ socket }) {
         <h2 id="auction-result-title">
           {sold ? "PLAYER SOLD" : "PLAYER UNSOLD"}
         </h2>
+        {result.playerPhoto && (
+          <PlayerImage
+            className="auction-result-player-image"
+            src={result.playerPhoto}
+            alt={result.playerName || "Player"}
+          />
+        )}
         <p className="auction-result-player">{result.playerName || "Player"}</p>
         {sold ? (
           <div className="auction-result-details">
+            {result.acquisitionMethod === "SUPER_STEAL" && (
+              <div className="auction-result-method">
+                <span>ACQUIRED BY</span>
+                <strong>SUPER STEAL</strong>
+              </div>
+            )}
             <div>
               <span>COLLEGE TEAM</span>
               <strong>{result.teamName || "College team"}</strong>
