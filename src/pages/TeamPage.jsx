@@ -38,7 +38,6 @@ export default function TeamPage() {
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [selectedXI, setSelectedXI] = useState([]);
   const [savingXI, setSavingXI] = useState(false);
-  const [auctionCompleted, setAuctionCompleted] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login");
@@ -54,14 +53,12 @@ export default function TeamPage() {
       axios.get(`${apiBaseUrl}/teams/me`, { headers }),
       axios.get(`${apiBaseUrl}/teams/me/assignment`, { headers }),
       axios.get(`${apiBaseUrl}/teams/rosters`, { headers }),
-      axios.get(`${apiBaseUrl}/auction/state`, { headers }),
     ])
       .then(
         ([
           teamResponse,
           assignmentResponse,
           leagueResponse,
-          auctionResponse,
         ]) => {
           setTeam(teamResponse.data.team);
           setWallet(teamResponse.data.wallet);
@@ -74,11 +71,6 @@ export default function TeamPage() {
           );
           setAssignment(assignmentResponse.data.assignment);
           setLeagueTeams(leagueResponse.data.teams || []);
-          setAuctionCompleted(
-            ["AUCTION_COMPLETED", "FINISHED"].includes(
-              auctionResponse.data.state?.status,
-            ),
-          );
         },
       )
       .catch((requestError) => {
@@ -97,9 +89,8 @@ export default function TeamPage() {
       Promise.all([
         axios.get(`${apiBaseUrl}/teams/me`, { headers }),
         axios.get(`${apiBaseUrl}/teams/rosters`, { headers }),
-        axios.get(`${apiBaseUrl}/auction/state`, { headers }),
       ])
-        .then(([teamResponse, leagueResponse, auctionResponse]) => {
+        .then(([teamResponse, leagueResponse]) => {
           setTeam(teamResponse.data.team);
           setWallet(teamResponse.data.wallet);
           setMembers(teamResponse.data.members || []);
@@ -110,11 +101,6 @@ export default function TeamPage() {
               .map((player) => player.player_id),
           );
           setLeagueTeams(leagueResponse.data.teams || []);
-          setAuctionCompleted(
-            ["AUCTION_COMPLETED", "FINISHED"].includes(
-              auctionResponse.data.state?.status,
-            ),
-          );
         })
         .catch(() => setError("Unable to refresh live team data"));
     };
@@ -122,17 +108,10 @@ export default function TeamPage() {
     socket.on("team_rosters_updated", refreshTeam);
     socket.on("team_registration_updated", refreshTeam);
     socket.on("connect", refreshTeam);
-    const refreshAuctionStatus = ({ state }) => {
-      setAuctionCompleted(
-        ["AUCTION_COMPLETED", "FINISHED"].includes(state?.status),
-      );
-    };
-    socket.on("auction_state", refreshAuctionStatus);
     return () => {
       socket.off("team_rosters_updated", refreshTeam);
       socket.off("team_registration_updated", refreshTeam);
       socket.off("connect", refreshTeam);
-      socket.off("auction_state", refreshAuctionStatus);
     };
   }, [socket, token, user?.role]);
 
@@ -144,7 +123,7 @@ export default function TeamPage() {
       )
     : [];
   const hasSavedPlayingXI = players.some((player) => player.is_playing_xi);
-  const playingXILocked = auctionCompleted || Boolean(team?.playing_xi_locked);
+  const playingXILocked = Boolean(team?.playing_xi_locked);
 
   const copyInviteCode = async () => {
     if (copyingInviteCode) return;
@@ -419,7 +398,6 @@ export default function TeamPage() {
                 onClick={fixPlayingXI}
                 disabled={
                   savingXI ||
-                  !auctionCompleted ||
                   selectedXI.length !== 11 ||
                   players.length < 11 ||
                   players.length > 18
@@ -486,13 +464,11 @@ export default function TeamPage() {
                             selectedXI.length === 11)
                         }
                         title={
-                          !auctionCompleted
-                            ? "Selection opens after the auction is complete"
-                            : team?.playing_xi_locked
-                              ? "The playing XI is locked after scoring"
-                              : selectedXI.includes(player.player_id)
-                                ? "Remove from playing XI"
-                                : "Add to playing XI"
+                          team?.playing_xi_locked
+                            ? "The playing XI is locked after scoring"
+                            : selectedXI.includes(player.player_id)
+                              ? "Remove from playing XI"
+                              : "Add to playing XI"
                         }
                         onClick={() => togglePlayingXI(player.player_id)}
                       >
