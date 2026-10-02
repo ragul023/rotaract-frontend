@@ -85,8 +85,9 @@ export default function DashboardPage() {
       if (payload?.teamId !== myTeam?.id) return;
       setPowers((current) => ({
         ...current,
-        superStealUsed: true,
-        canSuperSteal: false,
+        superStealUses: payload.superStealUses,
+        superStealRemaining: payload.superStealRemaining,
+        superStealUsed: payload.superStealRemaining === 0,
       }));
     };
     const onRostersUpdated = () => {
@@ -180,8 +181,9 @@ export default function DashboardPage() {
       setAuction(response.data.state);
       setPowers((current) => ({
         ...current,
-        superStealUsed: true,
-        canSuperSteal: false,
+        superStealUses: response.data.result.superStealUses,
+        superStealRemaining: response.data.result.superStealRemaining,
+        superStealUsed: response.data.result.superStealRemaining === 0,
       }));
       setBidError("");
     } catch (requestError) {
@@ -218,15 +220,20 @@ export default function DashboardPage() {
     status === "BIDDING" &&
     Boolean(auction?.current_player_id) &&
     !bidPending;
-  const teamPurse = Number(myTeam?.purse || 90);
-  const stealThreshold = teamPurse * 0.5;
+  const stealThreshold = Number(powers?.threshold ?? Number.POSITIVE_INFINITY);
+  const superStealRemaining = Number(powers?.superStealRemaining || 0);
+  const currentAuctionBid = Number(auction?.current_bid || 0);
+  const teamAlreadyLeads = auction?.highest_bidder_team_id === myTeam?.id;
+  const canAffordSuperSteal =
+    currentAuctionBid <= Number(wallet?.available_purse || 0);
   const canSuperSteal =
     user.role === "PARTICIPANT" &&
+    Boolean(powers) &&
     status === "BIDDING" &&
-    Number(auction?.current_bid || 0) >= stealThreshold &&
-    auction?.highest_bidder_team_id !== myTeam?.id &&
-    Number(auction?.current_bid || 0) <= Number(wallet?.available_purse || 0) &&
-    !powers?.superStealUsed;
+    currentAuctionBid >= stealThreshold &&
+    !teamAlreadyLeads &&
+    canAffordSuperSteal &&
+    superStealRemaining > 0;
   return (
     <div className="app-shell">
       {approvalModalOpen && (
@@ -492,9 +499,19 @@ export default function DashboardPage() {
                     <span>
                       <strong>Super Steal</strong>
                       <small>
-                        {powers?.superStealUsed
-                          ? "USED THIS AUCTION"
-                          : `Unlocks at ₹${stealThreshold.toFixed(2)} Cr`}
+                        {!powers
+                          ? "Checking eligibility..."
+                          : superStealRemaining === 0
+                            ? "NO USES LEFT THIS AUCTION"
+                            : status !== "BIDDING"
+                              ? "AVAILABLE WHILE A PLAYER IS ON THE BLOCK"
+                              : teamAlreadyLeads
+                                ? "YOUR TEAM ALREADY LEADS THIS PLAYER"
+                                : !canAffordSuperSteal
+                                  ? "REMAINING PURSE IS BELOW THE CURRENT BID"
+                                  : currentAuctionBid < stealThreshold
+                                    ? `${superStealRemaining} USE${superStealRemaining === 1 ? "" : "S"} LEFT · UNLOCKS AT ₹${stealThreshold.toFixed(2)} Cr`
+                                    : `${superStealRemaining} USE${superStealRemaining === 1 ? "" : "S"} LEFT · AVAILABLE`}
                       </small>
                     </span>
                     <Shield size={16} />

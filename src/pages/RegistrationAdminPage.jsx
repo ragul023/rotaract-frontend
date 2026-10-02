@@ -240,7 +240,7 @@ export default function RegistrationAdminPage() {
                     return (
                       <Fragment key={registration.id}>
                         <tr>
-                          <td>
+                          <td data-label="Team / Event">
                             <strong>{registration.team_name}</strong>
                             <small>
                               {registration.event_name}
@@ -248,27 +248,27 @@ export default function RegistrationAdminPage() {
                               {registration.registration_code}
                             </small>
                           </td>
-                          <td>
+                          <td data-label="Captain">
                             {registration.captain_name}
                             <small>{registration.captain_email}</small>
                           </td>
-                          <td>{registration.team_size}</td>
-                          <td>
+                          <td data-label="Members">{registration.team_size}</td>
+                          <td data-label="Registered">
                             {new Date(
                               registration.created_at,
                             ).toLocaleDateString()}
                           </td>
-                          <td>
+                          <td data-label="Amount">
                             {registration.amount == null
                               ? "—"
                               : `₹${Number(registration.amount).toFixed(2)}`}
                           </td>
-                          <td>
+                          <td data-label="Payment reference">
                             {registration.upi_reference ||
                               registration.payment_reference ||
                               "—"}
                           </td>
-                          <td>
+                          <td data-label="Payment status">
                             <span
                               className={`registration-admin-status ${String(
                                 registration.payment_status || "NOT STARTED",
@@ -281,7 +281,7 @@ export default function RegistrationAdminPage() {
                               ).replaceAll("_", " ")}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Registration status">
                             <span
                               className={`registration-admin-status ${registration.registration_status.toLowerCase().replaceAll("_", "-")}`}
                             >
@@ -291,7 +291,7 @@ export default function RegistrationAdminPage() {
                               )}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Actions">
                             <div className="registration-admin-actions">
                               <button
                                 className="btn secondary"
