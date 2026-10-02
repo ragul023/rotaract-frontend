@@ -144,7 +144,7 @@ export default function TeamPage() {
       )
     : [];
   const hasSavedPlayingXI = players.some((player) => player.is_playing_xi);
-  const playingXILocked = auctionCompleted || team.playing_xi_locked;
+  const playingXILocked = auctionCompleted || Boolean(team?.playing_xi_locked);
 
   const copyInviteCode = async () => {
     if (copyingInviteCode) return;
@@ -488,7 +488,7 @@ export default function TeamPage() {
                         title={
                           !auctionCompleted
                             ? "Selection opens after the auction is complete"
-                            : team.playing_xi_locked
+                            : team?.playing_xi_locked
                               ? "The playing XI is locked after scoring"
                               : selectedXI.includes(player.player_id)
                                 ? "Remove from playing XI"
