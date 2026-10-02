@@ -751,7 +751,45 @@ body {
   }
   .queue-row-actions {
     display: flex;
+    align-items: center;
     gap: 1px;
+  }
+  .queue-position-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 3px;
+  }
+  .queue-position-control label {
+    color: var(--muted);
+    font-size: 8px;
+  }
+  .queue-position-control input {
+    width: 48px;
+    height: 30px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0 4px;
+    color: var(--text);
+    background: var(--panel-alt);
+    font-size: 10px;
+    text-align: center;
+  }
+  .queue-position-control button {
+    min-width: 32px;
+    height: 30px;
+    border: 1px solid rgba(239, 194, 100, 0.24);
+    border-radius: 3px;
+    padding: 0 6px;
+    color: var(--brand);
+    background: rgba(239, 194, 100, 0.08);
+    font-size: 9px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .queue-position-control button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
   .queue-empty {
     padding: 24px 8px;
@@ -1388,9 +1426,11 @@ body {
       display: none;
     }
     .queue-row-actions {
-      grid-column: 4 / -1;
-      justify-self: end;
-      margin-top: -3px;
+      grid-column: 1 / -1;
+      justify-self: stretch;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 0;
     }
     .queue-row-actions .icon-action {
       width: 31px;

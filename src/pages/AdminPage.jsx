@@ -46,7 +46,9 @@ function SortableQueueRow({
   busy,
   onRemove,
   onMove,
+  onMoveTo,
 }) {
+  const [destination, setDestination] = useState(index + 1);
   const {
     attributes,
     listeners,
@@ -59,6 +61,17 @@ function SortableQueueRow({
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 2 : undefined,
+  };
+
+  useEffect(() => {
+    setDestination(index + 1);
+  }, [index]);
+
+  const submitDestination = (event) => {
+    event.preventDefault();
+    const position = Number(destination);
+    if (!Number.isInteger(position) || position < 1 || position > count) return;
+    onMoveTo(index, position - 1);
   };
 
   return (
@@ -98,6 +111,28 @@ function SortableQueueRow({
       </span>
       {editable && (
         <div className="queue-row-actions">
+          <form className="queue-position-control" onSubmit={submitDestination}>
+            <label htmlFor={`queue-position-${player.player_id}`}>
+              Move to
+            </label>
+            <input
+              id={`queue-position-${player.player_id}`}
+              type="number"
+              min="1"
+              max={count}
+              step="1"
+              value={destination}
+              aria-label={`Position for ${player.name}, currently ${index + 1} of ${count}`}
+              disabled={busy}
+              onChange={(event) => setDestination(event.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={busy || Number(destination) === index + 1}
+            >
+              Go
+            </button>
+          </form>
           <button
             type="button"
             className="icon-action"
@@ -425,6 +460,13 @@ export default function AdminPage() {
       [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
       return next;
     });
+  };
+
+  const moveQueuePlayerTo = (fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= playerQueue.length || fromIndex === toIndex) {
+      return;
+    }
+    setPlayerQueue((current) => arrayMove(current, fromIndex, toIndex));
   };
 
   const handleQueueDragEnd = ({ active, over }) => {
@@ -864,6 +906,7 @@ export default function AdminPage() {
                         editable={queueData.editable}
                         busy={busy}
                         onMove={moveQueuePlayer}
+                        onMoveTo={moveQueuePlayerTo}
                         onRemove={(playerId) =>
                           setPlayerQueue((current) =>
                             current.filter(
