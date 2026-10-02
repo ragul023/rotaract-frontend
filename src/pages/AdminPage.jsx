@@ -14,6 +14,7 @@ import {
   Menu,
   Plus,
   Save,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -49,6 +50,7 @@ function SortableQueueRow({
   onRemove,
   onMove,
   onMoveTo,
+  searchMatch,
 }) {
   const [destination, setDestination] = useState(index + 1);
   const {
@@ -78,7 +80,7 @@ function SortableQueueRow({
 
   return (
     <article
-      className={`queue-row${isDragging ? " is-dragging" : ""}`}
+      className={`queue-row${isDragging ? " is-dragging" : ""}${searchMatch ? " is-search-match" : ""}`}
       ref={setNodeRef}
       style={style}
     >
@@ -189,6 +191,7 @@ export default function AdminPage() {
   });
   const [playerQueue, setPlayerQueue] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [queueSearch, setQueueSearch] = useState("");
   const [tradeWindowOpen, setTradeWindowOpen] = useState(false);
   const [bidTime, setBidTime] = useState(30);
   const sensors = useSensors(
@@ -563,6 +566,15 @@ export default function AdminPage() {
         !playerQueue.some((queued) => queued.player_id === player.player_id),
     ),
   ];
+  const normalizedQueueSearch = queueSearch.trim().toLocaleLowerCase();
+  const matchesQueueSearch = (player) =>
+    !normalizedQueueSearch ||
+    [player.name, player.display_name, player.role, player.country].some(
+      (value) => value?.toLocaleLowerCase().includes(normalizedQueueSearch),
+    );
+  const filteredAvailablePlayers =
+    queueAvailablePlayers.filter(matchesQueueSearch);
+  const matchingQueuedCount = playerQueue.filter(matchesQueueSearch).length;
 
   return (
     <div className="app-shell">
@@ -875,42 +887,75 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {queueData.editable && (
-              <div className="queue-add-row">
-                <select
-                  aria-label="Choose player to add to queue"
-                  value={selectedPlayer}
-                  onChange={(event) => setSelectedPlayer(event.target.value)}
-                  disabled={busy || queueAvailablePlayers.length === 0}
-                >
-                  <option value="">Add a player to the queue...</option>
-                  {queueAvailablePlayers.map((player) => (
-                    <option key={player.player_id} value={player.player_id}>
-                      {player.display_name || player.name} · {player.role}
+            <div className="queue-add-row">
+              <label className="queue-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  type="search"
+                  value={queueSearch}
+                  onChange={(event) => {
+                    setQueueSearch(event.target.value);
+                    setSelectedPlayer("");
+                  }}
+                  placeholder="Search players by name, role, or country"
+                  aria-label="Search players by name, role, or country"
+                  autoComplete="off"
+                />
+                {queueSearch && (
+                  <button
+                    type="button"
+                    className="queue-search-clear"
+                    aria-label="Clear player search"
+                    onClick={() => {
+                      setQueueSearch("");
+                      setSelectedPlayer("");
+                    }}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </label>
+              {queueData.editable && (
+                <>
+                  <select
+                    aria-label="Choose player to add to queue"
+                    value={selectedPlayer}
+                    onChange={(event) => setSelectedPlayer(event.target.value)}
+                    disabled={busy || filteredAvailablePlayers.length === 0}
+                  >
+                    <option value="">
+                      {filteredAvailablePlayers.length === 0
+                        ? "No matching available players"
+                        : "Add a player to the queue..."}
                     </option>
-                  ))}
-                </select>
-                <button
-                  className="btn secondary icon-action"
-                  type="button"
-                  aria-label="Add selected player"
-                  title="Add selected player"
-                  disabled={busy || !selectedPlayer}
-                  onClick={addQueuePlayer}
-                >
-                  <Plus size={18} />
-                </button>
-                <button
-                  className="btn primary queue-save"
-                  type="button"
-                  disabled={busy || playerQueue.length === 0}
-                  onClick={savePlayerQueue}
-                >
-                  <Save size={16} />
-                  {busy ? "Saving" : "Save queue"}
-                </button>
-              </div>
-            )}
+                    {filteredAvailablePlayers.map((player) => (
+                      <option key={player.player_id} value={player.player_id}>
+                        {player.display_name || player.name} · {player.role}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="btn secondary icon-action"
+                    type="button"
+                    aria-label="Add selected player"
+                    title="Add selected player"
+                    disabled={busy || !selectedPlayer}
+                    onClick={addQueuePlayer}
+                  >
+                    <Plus size={18} />
+                  </button>
+                  <button
+                    className="btn primary queue-save"
+                    type="button"
+                    disabled={busy || playerQueue.length === 0}
+                    onClick={savePlayerQueue}
+                  >
+                    <Save size={16} />
+                    {busy ? "Saving" : "Save queue"}
+                  </button>
+                </>
+              )}
+            </div>
 
             <DndContext
               sensors={sensors}
@@ -935,6 +980,10 @@ export default function AdminPage() {
                         count={playerQueue.length}
                         editable={queueData.editable}
                         busy={busy}
+                        searchMatch={
+                          Boolean(normalizedQueueSearch) &&
+                          matchesQueueSearch(player)
+                        }
                         onMove={moveQueuePlayer}
                         onMoveTo={moveQueuePlayerTo}
                         onRemove={(playerId) =>
@@ -953,7 +1002,10 @@ export default function AdminPage() {
             {queueData.editable && (
               <div className="queue-footnote">
                 <span>Changes stay local until saved.</span>
-                <span>{queueAvailablePlayers.length} available to add</span>
+                <span>
+                  {queueAvailablePlayers.length} available ·{" "}
+                  {matchingQueuedCount} matching in queue
+                </span>
               </div>
             )}
           </section>
