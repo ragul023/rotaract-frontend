@@ -42,6 +42,7 @@ const StadiumScene = lazy(() => import("../components/StadiumScene"));
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 
 function SortableQueueRow({
+  id,
   player,
   index,
   count,
@@ -80,6 +81,8 @@ function SortableQueueRow({
 
   return (
     <article
+      id={id}
+      tabIndex={-1}
       className={`queue-row${isDragging ? " is-dragging" : ""}${searchMatch ? " is-search-match" : ""}`}
       ref={setNodeRef}
       style={style}
@@ -168,6 +171,80 @@ function SortableQueueRow({
             <Trash2 size={16} />
           </button>
         </div>
+      )}
+    </article>
+  );
+}
+
+function QueueSearchResult({
+  player,
+  index,
+  count,
+  editable,
+  busy,
+  onJump,
+  onMoveTo,
+}) {
+  const [destination, setDestination] = useState(index + 1);
+
+  useEffect(() => {
+    setDestination(index + 1);
+  }, [index]);
+
+  const submitDestination = (event) => {
+    event.preventDefault();
+    const position = Number(destination);
+    if (!Number.isInteger(position) || position < 1 || position > count) return;
+    onMoveTo(index, position - 1);
+  };
+
+  return (
+    <article className="queue-search-result">
+      <button
+        className="queue-search-result-jump"
+        type="button"
+        onClick={() => onJump(player.player_id)}
+        aria-label={`Jump to ${player.display_name || player.name}, queue position ${index + 1}`}
+      >
+        <span className="queue-search-result-rank">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <span className="queue-search-result-copy">
+          <strong>{player.display_name || player.name}</strong>
+          <small>
+            {player.role} · {player.country || "Unknown country"}
+          </small>
+        </span>
+        <span className="queue-search-result-status">
+          {player.queue_status || "PENDING"}
+        </span>
+      </button>
+      {editable && (
+        <form
+          className="queue-search-result-position"
+          onSubmit={submitDestination}
+        >
+          <label htmlFor={`search-result-position-${player.player_id}`}>
+            Move to
+          </label>
+          <input
+            id={`search-result-position-${player.player_id}`}
+            type="number"
+            min="1"
+            max={count}
+            step="1"
+            value={destination}
+            aria-label={`New position for ${player.display_name || player.name}`}
+            disabled={busy}
+            onChange={(event) => setDestination(event.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={busy || Number(destination) === index + 1}
+          >
+            Go
+          </button>
+        </form>
       )}
     </article>
   );
@@ -575,6 +652,15 @@ export default function AdminPage() {
   const filteredAvailablePlayers =
     queueAvailablePlayers.filter(matchesQueueSearch);
   const matchingQueuedCount = playerQueue.filter(matchesQueueSearch).length;
+  const matchingQueuedPlayers = playerQueue
+    .map((player, index) => ({ player, index }))
+    .filter(({ player }) => matchesQueueSearch(player));
+
+  const jumpToQueuedPlayer = (playerId) => {
+    const row = document.getElementById(`queue-player-${playerId}`);
+    row?.scrollIntoView({ behavior: "smooth", block: "center" });
+    row?.focus({ preventScroll: true });
+  };
 
   return (
     <div className="app-shell">
@@ -598,6 +684,16 @@ export default function AdminPage() {
             <strong>{user.name}</strong>
             <span className="role-chip">{user.role.replaceAll("_", " ")}</span>
           </div>
+          <button
+            className="admin-mobile-payments"
+            type="button"
+            aria-label="Open payment approvals"
+            title="Payment approvals"
+            onClick={() => navigate("/admin/registrations")}
+          >
+            <ClipboardList size={17} aria-hidden="true" />
+            <span>Payments</span>
+          </button>
           <button
             className="admin-sidebar-toggle"
             type="button"
@@ -957,6 +1053,38 @@ export default function AdminPage() {
               )}
             </div>
 
+            {normalizedQueueSearch && (
+              <section
+                className="queue-search-results"
+                aria-label={`Queue search results: ${matchingQueuedCount} matches`}
+              >
+                <div className="queue-search-results-heading">
+                  <strong>Search results</strong>
+                  <span>{matchingQueuedCount} in queue</span>
+                </div>
+                {matchingQueuedPlayers.length > 0 ? (
+                  <div className="queue-search-results-list">
+                    {matchingQueuedPlayers.map(({ player, index }) => (
+                      <QueueSearchResult
+                        key={player.player_id}
+                        player={player}
+                        index={index}
+                        count={playerQueue.length}
+                        editable={queueData.editable}
+                        busy={busy}
+                        onJump={jumpToQueuedPlayer}
+                        onMoveTo={moveQueuePlayerTo}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="queue-search-results-empty">
+                    No matching players are currently in the queue.
+                  </p>
+                )}
+              </section>
+            )}
+
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -975,6 +1103,7 @@ export default function AdminPage() {
                     playerQueue.map((player, index) => (
                       <SortableQueueRow
                         key={player.player_id}
+                        id={`queue-player-${player.player_id}`}
                         player={player}
                         index={index}
                         count={playerQueue.length}
