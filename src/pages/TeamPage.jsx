@@ -142,6 +142,7 @@ export default function TeamPage() {
         (player) => player.franchise_name === assignment.franchise_name,
       )
     : [];
+  const hasSavedPlayingXI = players.some((player) => player.is_playing_xi);
 
   const copyInviteCode = async () => {
     try {
@@ -395,9 +396,11 @@ export default function TeamPage() {
                     ? "A squad can contain no more than 18 players."
                     : team.playing_xi_locked
                       ? "Scores have been finalized for this XI."
-                      : !auctionCompleted
-                        ? "Selection opens after the auction is complete."
-                        : "Select 11 players for your final lineup."}
+                      : hasSavedPlayingXI
+                        ? "Playing XI saved. You can update it until scores are finalized."
+                        : !auctionCompleted
+                          ? "Selection opens after the auction is complete."
+                          : "Select 11 players for your final lineup."}
               </small>
             </div>
             {!team.playing_xi_locked && (
@@ -413,7 +416,12 @@ export default function TeamPage() {
                   players.length > 18
                 }
               >
-                <Check size={15} /> {savingXI ? "Saving..." : "Fix playing XI"}
+                <Check size={15} />
+                {savingXI
+                  ? "Saving..."
+                  : hasSavedPlayingXI
+                    ? "Update playing XI"
+                    : "Fix playing XI"}
               </button>
             )}
           </div>

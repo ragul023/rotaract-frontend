@@ -387,6 +387,7 @@ export default function AdminPage() {
   const performAction = async (action, payload = {}) => {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const response = await axios.post(
         `${apiBaseUrl}/auction/${action}`,
@@ -404,6 +405,9 @@ export default function AdminPage() {
       );
       setQueueData(queueResponse.data);
       setPlayerQueue(queueResponse.data.queue);
+      if (action === "finish") {
+        setNotice("Auction finished. Teams can now select their playing XI.");
+      }
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Auction action failed");
     } finally {
@@ -883,6 +887,30 @@ export default function AdminPage() {
                     onClick={() => performAction("next")}
                   >
                     Next player
+                  </button>
+                )}
+                {[
+                  "LOBBY",
+                  "BIDDING",
+                  "AUCTION_PAUSED",
+                  "PLAYER_SOLD",
+                  "PLAYER_UNSOLD",
+                ].includes(status) && (
+                  <button
+                    className="btn secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      const currentPlayerWillBeUnsold = [
+                        "BIDDING",
+                        "AUCTION_PAUSED",
+                      ].includes(status);
+                      const message = currentPlayerWillBeUnsold
+                        ? "Finish the auction now? The current player will be marked unsold. Teams can then select their playing XI."
+                        : "Finish the auction now? Teams can then select their playing XI.";
+                      if (window.confirm(message)) performAction("finish");
+                    }}
+                  >
+                    Finish auction
                   </button>
                 )}
               </div>

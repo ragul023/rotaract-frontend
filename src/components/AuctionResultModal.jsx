@@ -68,6 +68,11 @@ export default function AuctionResultModal({ socket }) {
           />
         )}
         <p className="auction-result-player">{result.playerName || "Player"}</p>
+        {result.franchiseName && (
+          <p className="auction-result-franchise">
+            FRANCHISE · {result.franchiseName}
+          </p>
+        )}
         {sold ? (
           <div className="auction-result-details">
             {result.acquisitionMethod === "SUPER_STEAL" && (
