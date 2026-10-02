@@ -312,6 +312,12 @@ body {
     flex-direction: column;
     padding: 18px 14px;
   }
+  .admin-sidebar-toggle {
+    display: none;
+  }
+  .admin-sidebar-navigation {
+    display: contents;
+  }
   .brand-lockup {
     display: flex;
     align-items: center;
@@ -1195,10 +1201,49 @@ body {
       position: relative;
       top: auto;
       display: grid;
-      grid-template-columns: auto 1fr;
+      grid-template-columns: auto minmax(0, 1fr) 42px;
       align-items: center;
       gap: 8px 14px;
       padding: 10px 13px;
+    }
+    .admin-sidebar-toggle {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--text);
+      background: var(--panel-alt);
+      cursor: pointer;
+    }
+    .admin-sidebar-toggle:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+    .admin-sidebar-navigation {
+      display: none;
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+    .admin-sidebar.is-mobile-open .admin-sidebar-navigation {
+      display: grid;
+      gap: 7px;
+      padding-top: 6px;
+    }
+    .admin-sidebar.is-mobile-open .sidebar-divider {
+      display: block;
+    }
+    .admin-sidebar.is-mobile-open .sidebar-section-label,
+    .admin-sidebar.is-mobile-open .sidebar-footer {
+      display: block;
+    }
+    .admin-sidebar.is-mobile-open .sidebar-link {
+      width: 100%;
+      display: flex;
+      grid-column: 1 / -1;
+      justify-content: space-between;
+      margin: 0;
     }
     .brand-lockup {
       padding: 0;
@@ -1224,8 +1269,22 @@ body {
     .sidebar-divider,
     .sidebar-section-label,
     .sidebar-link,
-    .sidebar-footer {
+    .sidebar-footer,
+    .admin-sidebar-toggle {
       display: none;
+    }
+    .admin-sidebar.is-mobile-open .sidebar-section-label,
+    .admin-sidebar.is-mobile-open .sidebar-footer {
+      display: block;
+    }
+    .admin-sidebar.is-mobile-open .sidebar-divider {
+      display: block;
+    }
+    .admin-sidebar.is-mobile-open .sidebar-link {
+      display: flex;
+    }
+    .admin-sidebar-toggle {
+      display: grid;
     }
     .dashboard-grid:not(.admin-layout) .sidebar {
       display: flex;

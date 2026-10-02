@@ -11,9 +11,11 @@ import {
   ClipboardList,
   LogOut,
   ListOrdered,
+  Menu,
   Plus,
   Save,
   Trash2,
+  X,
 } from "lucide-react";
 import {
   closestCenter,
@@ -178,6 +180,7 @@ export default function AdminPage() {
   const [assignments, setAssignments] = useState([]);
   const [franchises, setFranchises] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [queueData, setQueueData] = useState({
     queue: [],
     availablePlayers: [],
@@ -564,7 +567,9 @@ export default function AdminPage() {
   return (
     <div className="app-shell">
       <div className="container dashboard-grid admin-layout">
-        <aside className="card sidebar admin-sidebar">
+        <aside
+          className={`card sidebar admin-sidebar${mobileSidebarOpen ? " is-mobile-open" : ""}`}
+        >
           <div className="brand-lockup">
             <img
               className="brand-mark"
@@ -581,26 +586,51 @@ export default function AdminPage() {
             <strong>{user.name}</strong>
             <span className="role-chip">{user.role.replaceAll("_", " ")}</span>
           </div>
-          <div className="sidebar-divider" />
-          <div className="sidebar-section-label">CONTROL ROOM</div>
           <button
-            className="btn secondary sidebar-link active"
-            onClick={() => navigate("/dashboard")}
+            className="admin-sidebar-toggle"
+            type="button"
+            aria-label={
+              mobileSidebarOpen
+                ? "Close admin navigation"
+                : "Open admin navigation"
+            }
+            aria-expanded={mobileSidebarOpen}
+            aria-controls="admin-sidebar-navigation"
+            onClick={() => setMobileSidebarOpen((open) => !open)}
           >
-            Live auction <span className="sidebar-link-dot" />
+            {mobileSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <button
-            className="btn secondary sidebar-link"
-            onClick={() => navigate("/admin/registrations")}
+          <div
+            className="admin-sidebar-navigation"
+            id="admin-sidebar-navigation"
           >
-            Team registrations <ClipboardList size={15} />
-          </button>
-          <button className="btn secondary sidebar-link" onClick={logout}>
-            Sign out <LogOut size={15} />
-          </button>
-          <div className="sidebar-footer">
-            <span className="connection-light" />
-            <span>Server connected</span>
+            <div className="sidebar-divider" />
+            <div className="sidebar-section-label">CONTROL ROOM</div>
+            <button
+              className="btn secondary sidebar-link active"
+              onClick={() => {
+                setMobileSidebarOpen(false);
+                navigate("/dashboard");
+              }}
+            >
+              Live auction <span className="sidebar-link-dot" />
+            </button>
+            <button
+              className="btn secondary sidebar-link"
+              onClick={() => {
+                setMobileSidebarOpen(false);
+                navigate("/admin/registrations");
+              }}
+            >
+              Team registrations <ClipboardList size={15} />
+            </button>
+            <button className="btn secondary sidebar-link" onClick={logout}>
+              Sign out <LogOut size={15} />
+            </button>
+            <div className="sidebar-footer">
+              <span className="connection-light" />
+              <span>Server connected</span>
+            </div>
           </div>
         </aside>
 
