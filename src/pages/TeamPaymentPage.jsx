@@ -41,6 +41,7 @@ export default function TeamPaymentPage() {
         axios.get(`${apiBaseUrl}/teams/registration-settings`),
       ]);
       setRegistration(teamResponse.data.registration);
+      setMembershipPrivilege(Boolean(teamResponse.data.registration?.membership_privilege));
       setFee(feeResponse.data.fee);
       setPaymentReference(
         teamResponse.data.registration?.payment_reference || "",
@@ -127,6 +128,26 @@ export default function TeamPaymentPage() {
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const updateMembershipPrivilege = async (enabled) => {
+    setMembershipPrivilege(enabled);
+    setError("");
+    try {
+      const data = new FormData();
+      data.append("enabled", String(enabled));
+      const response = await axios.post(`${apiBaseUrl}/teams/me/membership-privilege`, data, {
+        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      });
+      setRegistration((current) => ({
+        ...current,
+        amount: response.data.amount,
+        membership_privilege: response.data.membershipPrivilege,
+      }));
+    } catch (requestError) {
+      setMembershipPrivilege(!enabled);
+      setError(requestError.response?.data?.message || "Unable to update membership privilege");
     }
   };
 
@@ -274,7 +295,9 @@ export default function TeamPaymentPage() {
               <div>
                 <small>REGISTRATION FEE · ENTIRE TEAM</small>
                 <strong>
-                  {registration.amount == null
+                  {membershipPrivilege
+                    ? `₹${Number(30).toFixed(2)}`
+                    : registration.amount == null
                     ? fee == null
                       ? "Set by admin"
                       : `₹${Number(fee).toFixed(2)}`
@@ -294,7 +317,7 @@ export default function TeamPaymentPage() {
                   <input
                     type="checkbox"
                     checked={membershipPrivilege}
-                    onChange={(event) => setMembershipPrivilege(event.target.checked)}
+                    onChange={(event) => updateMembershipPrivilege(event.target.checked)}
                   />
                   <span>
                     <strong>Membership privilege</strong>

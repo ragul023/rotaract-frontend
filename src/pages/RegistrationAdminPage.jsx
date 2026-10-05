@@ -3,12 +3,14 @@ import axios from "axios";
 import { ArrowLeft, RefreshCw, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 import "../styles/registration-admin.css";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 
 export default function RegistrationAdminPage() {
   const { user, token, loading } = useAuth();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [registrations, setRegistrations] = useState([]);
   const [fee, setFee] = useState("");
@@ -62,6 +64,12 @@ export default function RegistrationAdminPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!socket) return undefined;
+    socket.on("team_registration_updated", loadData);
+    return () => socket.off("team_registration_updated", loadData);
+  }, [socket, loadData]);
 
   const saveFee = async (event) => {
     event.preventDefault();
