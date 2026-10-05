@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { ArrowRight, Check, Copy, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, Copy, RefreshCw, ShieldCheck, UsersRound } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
@@ -9,12 +9,17 @@ import "../styles/registration.css";
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 
 export default function TeamPaymentPage() {
-  const { user, token, loading } = useAuth();
+  const { user, token, loading, updateSession } = useAuth();
   const { socket } = useSocket();
   const navigate = useNavigate();
   const [registration, setRegistration] = useState(null);
   const [fee, setFee] = useState(null);
   const [paymentReference, setPaymentReference] = useState("");
+  const [teamCode, setTeamCode] = useState("");
+  const [registerNumber, setRegisterNumber] = useState("");
+  const [department, setDepartment] = useState("");
+  const [membershipPrivilege, setMembershipPrivilege] = useState(false);
+  const [membershipCards, setMembershipCards] = useState([null, null, null]);
   const [copied, setCopied] = useState(false);
   const [copyingTeamCode, setCopyingTeamCode] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -27,11 +32,12 @@ export default function TeamPaymentPage() {
 
   const refresh = useCallback(async () => {
     if (!token) return;
+    const requestHeaders = { Authorization: `Bearer ${token}` };
     setBusy(true);
     setError("");
     try {
       const [teamResponse, feeResponse] = await Promise.all([
-        axios.get(`${apiBaseUrl}/teams/me/registration`, { headers }),
+        axios.get(`${apiBaseUrl}/teams/me/registration`, { headers: requestHeaders }),
         axios.get(`${apiBaseUrl}/teams/registration-settings`),
       ]);
       setRegistration(teamResponse.data.registration);
@@ -94,6 +100,16 @@ export default function TeamPaymentPage() {
     setBusy(true);
     setError("");
     try {
+      const membershipData = new FormData();
+      membershipData.append("enabled", String(membershipPrivilege));
+      if (membershipPrivilege) {
+        membershipCards.forEach((card, index) => {
+          if (card) membershipData.append(`memberCard${index + 1}`, card);
+        });
+      }
+      await axios.post(`${apiBaseUrl}/teams/me/membership-privilege`, membershipData, {
+        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      });
       const response = await axios.post(
         `${apiBaseUrl}/teams/me/payment-reference`,
         { paymentReference },
@@ -125,6 +141,25 @@ export default function TeamPaymentPage() {
       setError("Clipboard access is unavailable in this browser");
     } finally {
       setCopyingTeamCode(false);
+    }
+  };
+
+  const joinTeam = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const response = await axios.post(
+        `${apiBaseUrl}/teams/me/join`,
+        { teamCode: teamCode.trim().toUpperCase(), registerNumber, department },
+        { headers },
+      );
+      updateSession(response.data);
+      await refresh();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Unable to join team");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -176,17 +211,15 @@ export default function TeamPaymentPage() {
           <section className="registration-panel registration-result">
             <span className="eyebrow">CREATE A TEAM FIRST</span>
             <h2>No team found for this account.</h2>
-            <p>
-              Use Create a team to register as captain. The team code is
-              released only after payment approval.
-            </p>
-            <button
-              className="btn primary"
-              type="button"
-              onClick={() => navigate("/register")}
-            >
-              Create a team <ArrowRight size={16} />
-            </button>
+            <p>Enter an approved team invite code if you skipped this step during registration, or create a team as captain.</p>
+            <form className="registration-payment-form" onSubmit={joinTeam}>
+              <label className="form-section-label"><UsersRound size={15} /> JOIN A TEAM</label>
+              <input required minLength="4" value={teamCode} onChange={(event) => setTeamCode(event.target.value.toUpperCase())} placeholder="Team invite code" />
+              <input required minLength="2" value={registerNumber} onChange={(event) => setRegisterNumber(event.target.value)} placeholder="Register number" />
+              <input required minLength="2" value={department} onChange={(event) => setDepartment(event.target.value)} placeholder="Department" />
+              <button className="btn primary" type="submit" disabled={busy}>Join team <ArrowRight size={16} /></button>
+            </form>
+            <button className="btn secondary" type="button" onClick={() => navigate("/register")}>Create a team as captain</button>
           </section>
         ) : isConfirmed ? (
           <section className="registration-panel registration-result is-confirmed">
@@ -254,6 +287,39 @@ export default function TeamPaymentPage() {
               </div>
               <ShieldCheck size={25} />
             </div>
+
+            {registration.is_captain && registration.payment_id && !paymentPending && (
+              <section className="membership-privilege">
+                <label className="membership-privilege-toggle">
+                  <input
+                    type="checkbox"
+                    checked={membershipPrivilege}
+                    onChange={(event) => setMembershipPrivilege(event.target.checked)}
+                  />
+                  <span>
+                    <strong>Membership privilege</strong>
+                    <small>Claim the special membership benefit for your team.</small>
+                  </span>
+                </label>
+                {membershipPrivilege && (
+                  <div className="membership-card-slots">
+                    <p>Upload membership cards for three members. Names are not required.</p>
+                    {membershipCards.map((card, index) => (
+                      <label className="membership-card-slot" key={index}>
+                        <span>Member {index + 1} card</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          required
+                          onChange={(event) => setMembershipCards((current) => current.map((item, slot) => slot === index ? event.target.files?.[0] || null : item))}
+                        />
+                        {card && <small>{card.name}</small>}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
             {!registration.payment_id ? (
               <div className="registration-payment-form">

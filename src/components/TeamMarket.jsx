@@ -27,10 +27,18 @@ export default function TeamMarket({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [clockNow, setClockNow] = useState(Date.now());
+  const [marketPage, setMarketPage] = useState(0);
 
   const headers = { Authorization: `Bearer ${token}` };
   const targetTeams = teams.filter((team) => team.team_id !== teamId);
   const targetTeam = targetTeams.find((team) => team.team_id === targetTeamId);
+  const listingPageSize = 12;
+  const listingPageCount = Math.ceil(market.listings.length / listingPageSize);
+  const visibleListings = market.listings.slice(
+    marketPage * listingPageSize,
+    (marketPage + 1) * listingPageSize,
+  );
 
   const refresh = async () => {
     if (!isTeamApproved) {
@@ -47,6 +55,7 @@ export default function TeamMarket({
     setWindowOpen(windowResponse.data.open);
     setOffers(offerResponse.data.offers);
     setMarket(marketResponse.data.market);
+    setMarketPage((page) => Math.min(page, Math.max(0, Math.ceil(marketResponse.data.market.listings.length / listingPageSize) - 1)));
   };
 
   useEffect(() => {
@@ -73,6 +82,17 @@ export default function TeamMarket({
       socket.off("trade_window_updated", onWindowUpdate);
     };
   }, [socket, token, teamId, isTeamApproved]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockNow(Date.now()), 1000);
+    const fallbackRefresh = setInterval(() => {
+      refresh().catch(() => setError("Unable to refresh trade offers"));
+    }, 5000);
+    return () => {
+      clearInterval(timer);
+      clearInterval(fallbackRefresh);
+    };
+  }, [token, teamId, isTeamApproved]);
 
   const sendOffer = async (event) => {
     event.preventDefault();
@@ -315,7 +335,10 @@ export default function TeamMarket({
   ].sort(
     (left, right) => new Date(left.created_at) - new Date(right.created_at),
   );
-  const activeSellerRequest = windowOpen ? sellerQueue[0] : null;
+  const activeSellerRequest = sellerQueue[0] || null;
+  const sellerSecondsLeft = activeSellerRequest?.expires_at
+    ? Math.max(0, Math.ceil((new Date(activeSellerRequest.expires_at).getTime() - clockNow) / 1000))
+    : 30;
   const activeBuyerNotice = activeSellerRequest ? null : buyerQueue[0];
 
   if (!isTeamApproved) {
@@ -343,8 +366,8 @@ export default function TeamMarket({
           <h2>
             <ArrowLeftRight size={19} /> Player exchange
           </h2>
-          <p className="muted">
-            One player for one player. Team purse and scoring stay unchanged.
+            <p className="muted">
+            Swap players or sell at an asking price. Accepted cash offers transfer purse between teams.
           </p>
         </div>
         <span
@@ -489,7 +512,7 @@ export default function TeamMarket({
             {market.listings.length === 0 ? (
               <p className="trade-empty">No players are listed for sale.</p>
             ) : (
-              market.listings.map((listing) => {
+              visibleListings.map((listing) => {
                 const isOwnListing = listing.seller_team_id === teamId;
                 const pendingRequest = market.requests.some(
                   (request) =>
@@ -535,6 +558,13 @@ export default function TeamMarket({
                   </article>
                 );
               })
+            )}
+            {listingPageCount > 1 && (
+              <nav className="trade-market-pagination" aria-label="Player market pages">
+                <button type="button" className="btn secondary" disabled={marketPage === 0} onClick={() => setMarketPage((page) => page - 1)}>Previous</button>
+                <span>Page {marketPage + 1} of {listingPageCount}</span>
+                <button type="button" className="btn secondary" disabled={marketPage + 1 >= listingPageCount} onClick={() => setMarketPage((page) => page + 1)}>Next</button>
+              </nav>
             )}
           </div>
         </div>
@@ -637,6 +667,9 @@ export default function TeamMarket({
             aria-labelledby="seller-trade-title"
           >
             <span className="eyebrow">INCOMING TRADE REQUEST</span>
+            <div className="trade-request-countdown" role="timer" aria-live="off">
+              {sellerSecondsLeft > 0 ? `Respond within ${sellerSecondsLeft}s` : "Request expired"}
+            </div>
             <h3 id="seller-trade-title">
               {activeSellerRequest.kind === "purchase"
                 ? `Purchase request · ${activeSellerRequest.player_name}`
@@ -667,7 +700,7 @@ export default function TeamMarket({
               <button
                 className="btn secondary"
                 type="button"
-                disabled={busy || !windowOpen}
+                disabled={busy || !windowOpen || sellerSecondsLeft <= 0}
                 onClick={() =>
                   activeSellerRequest.kind === "purchase"
                     ? respondToPurchase(activeSellerRequest.id, false)
@@ -679,7 +712,7 @@ export default function TeamMarket({
               <button
                 className="btn primary"
                 type="button"
-                disabled={busy || !windowOpen}
+                disabled={busy || !windowOpen || sellerSecondsLeft <= 0}
                 onClick={() =>
                   activeSellerRequest.kind === "purchase"
                     ? respondToPurchase(activeSellerRequest.id, true)

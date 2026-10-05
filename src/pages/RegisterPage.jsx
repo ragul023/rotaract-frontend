@@ -271,6 +271,14 @@ export default function RegisterPage() {
               {!submitting && <ArrowRight size={16} />}
             </button>
           </form>
+          <div className="eyebrow net">
+            Already Registerd?{" "}
+            <span>
+              <Link to="/login" cla>
+                Login
+              </Link>
+            </span>
+          </div>
         </>
       </div>
     </div>

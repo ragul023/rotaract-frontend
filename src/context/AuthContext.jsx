@@ -161,6 +161,8 @@ export function AuthProvider({ children }) {
     return response.data;
   };
 
+  const updateSession = (data) => acceptAuthResponse(data);
+
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -172,7 +174,7 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ user, token, login, register, joinTeam, logout, loading }),
+    () => ({ user, token, login, register, joinTeam, updateSession, logout, loading }),
     [user, token, loading],
   );
 

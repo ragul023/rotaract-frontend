@@ -850,6 +850,14 @@ body {
     font-family: "Barlow Condensed", sans-serif;
     font-size: 15px;
   }
+
+  .net{
+    padding: 10px;
+  }
+
+  .net span{
+    color: white;
+  }
   .queue-drag-handle {
     width: 22px;
     height: 36px;
@@ -2343,6 +2351,24 @@ body {
   line-height: 1.05;
   text-transform: uppercase;
   overflow-wrap: anywhere;
+}
+.trade-request-countdown {
+  justify-self: start;
+  padding: 6px 9px;
+  border: 1px solid var(--brand);
+  color: var(--brand-2);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.trade-market-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 0;
+  color: var(--muted);
+  font-size: 11px;
 }
 .trade-request-modal p {
   margin: 0;

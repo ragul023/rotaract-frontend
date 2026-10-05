@@ -120,6 +120,25 @@ export default function RegistrationAdminPage() {
     }
   };
 
+  const downloadMembershipCard = async (registration, slot) => {
+    try {
+      const response = await axios.get(
+        `${apiBaseUrl}/admin/registrations/${registration.id}/membership-cards/${slot}`,
+        { headers, responseType: "blob" },
+      );
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${registration.team_name}-member-${slot}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(`Unable to download Member ${slot}'s card for ${registration.team_name}.`);
+    }
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -354,6 +373,26 @@ export default function RegistrationAdminPage() {
                             key={`${registration.id}-detail`}
                           >
                             <td colSpan="9">
+                              {registration.membership_privilege && (
+                                <section className="registration-membership-cards">
+                                  <h3>Membership cards · {registration.team_name}</h3>
+                                  <div>
+                                    {[1, 2, 3].map((slot) => {
+                                      const uploaded = registration[`membership_card_${slot}_uploaded`];
+                                      return (
+                                        <article key={slot}>
+                                          <strong>Member {slot}</strong>
+                                          {uploaded ? (
+                                            <button className="btn secondary" type="button" onClick={() => downloadMembershipCard(registration, slot)}>
+                                              Download card
+                                            </button>
+                                          ) : <small>Not uploaded</small>}
+                                        </article>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+                              )}
                               <div className="registration-admin-roster">
                                 {registration.members.map((member) => (
                                   <article key={member.registerNumber}>
