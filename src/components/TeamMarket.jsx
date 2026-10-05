@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { ArrowLeftRight, Banknote, Check, Clock3, X } from "lucide-react";
 import { useSocket } from "../context/SocketContext";
 import PlayerImage from "./PlayerImage";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
+const listingPageSize = 12;
 
 export default function TeamMarket({
   token,
@@ -29,34 +30,62 @@ export default function TeamMarket({
   const [notice, setNotice] = useState("");
   const [clockNow, setClockNow] = useState(Date.now());
   const [marketPage, setMarketPage] = useState(0);
+  const refreshInFlight = useRef(null);
+  const refreshQueued = useRef(false);
 
   const headers = { Authorization: `Bearer ${token}` };
   const targetTeams = teams.filter((team) => team.team_id !== teamId);
   const targetTeam = targetTeams.find((team) => team.team_id === targetTeamId);
-  const listingPageSize = 12;
   const listingPageCount = Math.ceil(market.listings.length / listingPageSize);
   const visibleListings = market.listings.slice(
     marketPage * listingPageSize,
     (marketPage + 1) * listingPageSize,
   );
 
-  const refresh = async () => {
+  const refresh = useCallback(() => {
     if (!isTeamApproved) {
       setWindowOpen(false);
       setOffers([]);
       setMarket({ listings: [], requests: [] });
-      return;
+      return Promise.resolve();
     }
-    const [windowResponse, offerResponse, marketResponse] = await Promise.all([
-      axios.get(`${apiBaseUrl}/trades/window`, { headers }),
-      axios.get(`${apiBaseUrl}/trades/offers`, { headers }),
-      axios.get(`${apiBaseUrl}/trades/market`, { headers }),
-    ]);
-    setWindowOpen(windowResponse.data.open);
-    setOffers(offerResponse.data.offers);
-    setMarket(marketResponse.data.market);
-    setMarketPage((page) => Math.min(page, Math.max(0, Math.ceil(marketResponse.data.market.listings.length / listingPageSize) - 1)));
-  };
+    if (!token || !teamId) return Promise.resolve();
+    if (refreshInFlight.current) {
+      refreshQueued.current = true;
+      return refreshInFlight.current.then(
+        () => {
+          if (!refreshQueued.current) return undefined;
+          refreshQueued.current = false;
+          return refresh();
+        },
+        (requestError) => {
+          refreshQueued.current = false;
+          throw requestError;
+        },
+      );
+    }
+
+    const request = axios
+      .get(`${apiBaseUrl}/trades/state`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(({ data }) => {
+        setWindowOpen(data.open);
+        setOffers(data.offers);
+        setMarket(data.market);
+        setMarketPage((page) =>
+          Math.min(
+            page,
+            Math.max(0, Math.ceil(data.market.listings.length / listingPageSize) - 1),
+          ),
+        );
+      })
+      .finally(() => {
+        if (refreshInFlight.current === request) refreshInFlight.current = null;
+      });
+    refreshInFlight.current = request;
+    return request;
+  }, [isTeamApproved, teamId, token]);
 
   useEffect(() => {
     if (!token || !teamId) return;
@@ -65,7 +94,7 @@ export default function TeamMarket({
         requestError.response?.data?.message || "Unable to load trade room",
       );
     });
-  }, [token, teamId, isTeamApproved]);
+  }, [refresh, token, teamId]);
 
   useEffect(() => {
     if (!socket || !isTeamApproved) return undefined;
@@ -73,26 +102,30 @@ export default function TeamMarket({
       refresh().catch(() => setError("Unable to refresh trade offers"));
     };
     const onWindowUpdate = (payload) => setWindowOpen(payload?.open === true);
+    const onSocketConnect = () => {
+      refresh().catch(() => setError("Unable to refresh trade offers"));
+    };
     socket.on("trade_offer_updated", onTradeUpdate);
     socket.on("trade_market_updated", onTradeUpdate);
     socket.on("trade_window_updated", onWindowUpdate);
+    socket.on("connect", onSocketConnect);
     return () => {
       socket.off("trade_offer_updated", onTradeUpdate);
       socket.off("trade_market_updated", onTradeUpdate);
       socket.off("trade_window_updated", onWindowUpdate);
+      socket.off("connect", onSocketConnect);
     };
-  }, [socket, token, teamId, isTeamApproved]);
+  }, [socket, refresh, isTeamApproved]);
 
   useEffect(() => {
-    const timer = setInterval(() => setClockNow(Date.now()), 1000);
+    if (!token || !teamId || !isTeamApproved) return undefined;
     const fallbackRefresh = setInterval(() => {
-      refresh().catch(() => setError("Unable to refresh trade offers"));
-    }, 5000);
-    return () => {
-      clearInterval(timer);
-      clearInterval(fallbackRefresh);
-    };
-  }, [token, teamId, isTeamApproved]);
+      if (!socket?.connected) {
+        refresh().catch(() => setError("Unable to refresh trade offers"));
+      }
+    }, 15000);
+    return () => clearInterval(fallbackRefresh);
+  }, [socket, refresh, token, teamId, isTeamApproved]);
 
   const sendOffer = async (event) => {
     event.preventDefault();
@@ -114,7 +147,7 @@ export default function TeamMarket({
         },
         { headers },
       );
-      await refresh();
+      refresh().catch(() => setError("Trade sent, but the latest trade room could not be loaded"));
       setNotice("Trade offer sent");
       setOfferedPlayerId("");
       setRequestedPlayerId("");
@@ -145,7 +178,7 @@ export default function TeamMarket({
         { accepted },
         { headers },
       );
-      await refresh();
+      refresh().catch(() => setError("Trade updated, but the latest trade room could not be loaded"));
       setNotice(accepted ? "Trade completed" : "Offer declined");
     } catch (requestError) {
       if (requestError.response?.data?.code === "TEAM_PAYMENT_NOT_APPROVED") {
@@ -165,7 +198,7 @@ export default function TeamMarket({
     setError("");
     try {
       await axios.delete(`${apiBaseUrl}/trades/offers/${offerId}`, { headers });
-      await refresh();
+      refresh().catch(() => setError("Trade cancelled, but the latest trade room could not be loaded"));
       setNotice("Trade offer cancelled");
     } catch (requestError) {
       setError(
@@ -191,7 +224,7 @@ export default function TeamMarket({
         { playerId: listingPlayerId, askingPrice: Number(askingPrice) },
         { headers },
       );
-      await refresh();
+      refresh().catch(() => setError("Listing created, but the latest trade room could not be loaded"));
       setListingPlayerId("");
       setAskingPrice("");
       setNotice("Player listed for sale");
@@ -209,7 +242,7 @@ export default function TeamMarket({
       await axios.delete(`${apiBaseUrl}/trades/market/listings/${listingId}`, {
         headers,
       });
-      await refresh();
+      refresh().catch(() => setError("Listing cancelled, but the latest trade room could not be loaded"));
       setNotice("Listing cancelled");
     } catch (requestError) {
       setError(
@@ -234,7 +267,7 @@ export default function TeamMarket({
         {},
         { headers },
       );
-      await refresh();
+      refresh().catch(() => setError("Request sent, but the latest trade room could not be loaded"));
       setNotice("Purchase request sent to seller");
     } catch (requestError) {
       setError(
@@ -254,7 +287,7 @@ export default function TeamMarket({
         { accepted },
         { headers },
       );
-      await refresh();
+      refresh().catch(() => setError("Request updated, but the latest trade room could not be loaded"));
       setNotice(accepted ? "Player sold" : "Purchase request declined");
     } catch (requestError) {
       setError(
@@ -275,7 +308,7 @@ export default function TeamMarket({
           ? `/trades/market/requests/${id}/acknowledge`
           : `/trades/offers/${id}/acknowledge`;
       await axios.post(`${apiBaseUrl}${path}`, {}, { headers });
-      await refresh();
+      refresh().catch(() => setError("Notification closed, but the latest trade room could not be loaded"));
     } catch (requestError) {
       setError(
         requestError.response?.data?.message || "Unable to close notification",
@@ -292,7 +325,7 @@ export default function TeamMarket({
       await axios.delete(`${apiBaseUrl}/trades/market/requests/${requestId}`, {
         headers,
       });
-      await refresh();
+      refresh().catch(() => setError("Request cancelled, but the latest trade room could not be loaded"));
       setNotice("Purchase request cancelled");
     } catch (requestError) {
       setError(
@@ -340,6 +373,12 @@ export default function TeamMarket({
     ? Math.max(0, Math.ceil((new Date(activeSellerRequest.expires_at).getTime() - clockNow) / 1000))
     : 30;
   const activeBuyerNotice = activeSellerRequest ? null : buyerQueue[0];
+
+  useEffect(() => {
+    if (!activeSellerRequest?.expires_at) return undefined;
+    const timer = setInterval(() => setClockNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [activeSellerRequest?.id, activeSellerRequest?.expires_at]);
 
   if (!isTeamApproved) {
     return (
